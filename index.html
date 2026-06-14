@@ -26,7 +26,6 @@
       padding: 15px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      cursor: pointer;
     }
 
     .card img {
@@ -34,6 +33,7 @@
       height: 180px;
       object-fit: cover;
       border-radius: 10px;
+      background: #ddd;
     }
 
     .title {
@@ -52,36 +52,56 @@
       color: green;
     }
   </style>
+
 </head>
 
 <body>
 
 <h1>🎓 Graduation Gift Registry</h1>
 
-<div class="grid">
+<div id="grid" class="grid"></div>
 
-  <div class="card">
-    <img src="https://via.placeholder.com/300x200" />
-    <div class="title">Hexclad Cookware</div>
-    <div class="desc">Contribution to cookware set</div>
-    <div class="status">1 slot available</div>
-  </div>
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-  <div class="card">
-    <img src="https://via.placeholder.com/300x200" />
-    <div class="title">Black Dress Shoes</div>
-    <div class="desc">Contribution to graduation outfit</div>
-    <div class="status">1 slot available</div>
-  </div>
+  // 🔴 PUT YOUR VALUES HERE:
+  const SUPABASE_URL = "https://szbcezcafzbdmdeqkobx.supabase.co/rest/v1/";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6YmNlemNhZnpiZG1kZXFrb2J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NDQ0MzksImV4cCI6MjA5NzAyMDQzOX0.vtg5fAL7ZcvkbtPGukNOEW1ZF3e3dheO1ygT2-88y6o";
 
-  <div class="card">
-    <img src="https://via.placeholder.com/300x200" />
-    <div class="title">IKEA Gift Card</div>
-    <div class="desc">Contribution to IKEA gift card</div>
-    <div class="status">5 slots available</div>
-  </div>
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-</div>
+  async function loadGifts() {
+    const { data, error } = await supabase
+      .from("gifts")
+      .select("*");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+
+    data.forEach(gift => {
+      const remaining = gift.max_claims - gift.current_claims;
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <img src="${gift.image_url || "https://via.placeholder.com/300x200"}" />
+        <div class="title">${gift.name}</div>
+        <div class="desc">${gift.description}</div>
+        <div class="status">${remaining} slot(s) left</div>
+      `;
+
+      grid.appendChild(card);
+    });
+  }
+
+  loadGifts();
+</script>
 
 </body>
 </html>
