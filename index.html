@@ -2,6 +2,8 @@
 <head>
   <title>Graduation Gift Registry</title>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       font-family: Arial;
@@ -27,7 +29,6 @@
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       cursor: pointer;
-
       transition:
         transform 0.2s ease,
         box-shadow 0.2s ease;
@@ -36,6 +37,16 @@
     .card:hover {
       transform: translateY(-5px);
       box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    /* Styles for when a card is fully claimed */
+    .card.disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .card.disabled:hover {
+      transform: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .card img {
@@ -63,6 +74,11 @@
       color: green;
     }
 
+    .status.full {
+      color: #cc0000;
+      font-weight: bold;
+    }
+
     .hint {
       margin-top: 12px;
       text-align: center;
@@ -75,6 +91,9 @@
     .card:hover .hint {
       opacity: 1;
     }
+    .card.disabled:hover .hint {
+      opacity: 0;
+    }
   </style>
 </head>
 
@@ -82,33 +101,107 @@
 
 <h1>🎓 Graduation Gift Registry</h1>
 
-<div class="grid">
+<div id="gift-grid" class="grid"></div>
 
-  <div class="card">
-    <img src="https://placehold.co/300x200" />
-    <div class="title">Hexclad Cookware</div>
-    <div class="desc">Contribution to cookware set</div>
-    <div class="status">1 slot available</div>
-    <div class="hint">Click to reserve →</div>
-  </div>
+<script>
+  // 1. Initialize Supabase Client
+  // Replace these credentials with your actual project details from settings
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL'; 
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  <div class="card">
-    <img src="https://placehold.co/300x200" />
-    <div class="title">Black Dress Shoes</div>
-    <div class="desc">Contribution to graduation outfit</div>
-    <div class="status">1 slot available</div>
-    <div class="hint">Click to reserve →</div>
-  </div>
+  // 2. Fetch gifts from Supabase and render them onto the grid
+  async function loadGifts() {
+    const grid = document.getElementById("gift-grid");
+    grid.innerHTML = "Loading gifts...";
 
-  <div class="card">
-    <img src="https://placehold.co/300x200" />
-    <div class="title">IKEA Gift Card</div>
-    <div class="desc">Contribution to IKEA gift card</div>
-    <div class="status">5 slots available</div>
-    <div class="hint">Click to reserve →</div>
-  </div>
+    // Fetch gifts from your Supabase 'gifts' table
+    const { data: gifts, error } = await supabase
+      .from('gifts')
+      .select('*')
+      .order('id', { ascending: true });
 
-</div>
+    if (error) {
+      console.error("Error loading gifts:", error);
+      grid.innerHTML = "<p>Could not fetch items. Make sure your RLS policies are set up or check console logs.</p>";
+      return;
+    }
+
+    // Clear loading text
+    grid.innerHTML = "";
+
+    // Generate HTML and assign event listeners dynamically
+    gifts.forEach(gift => {
+      const remaining = gift.max_claims - gift.current_claims;
+      const isFull = remaining <= 0;
+
+      const card = document.createElement("div");
+      card.className = `card ${isFull ? 'disabled' : ''}`;
+
+      card.innerHTML = `
+        <img src="${gift.image_url || 'https://placehold.co/300x200'}" alt="${gift.name}" />
+        <div class="title">${gift.name}</div>
+        <div class="desc">${gift.description}</div>
+        <div class="status ${isFull ? 'full' : ''}">
+          ${isFull ? 'Fully Reserved' : `${remaining} slot(s) available`}
+        </div>
+        ${isFull ? '' : '<div class="hint">Click to reserve →</div>'}
+      `;
+
+      // 3. Add Click Handler to the card (with Supabase Transaction Semaphore Logic)
+      card.addEventListener("click", async () => {
+        // Stop execution if the item is already completely reserved
+        if (isFull) {
+          alert("This gift has already been fully claimed!");
+          return;
+        }
+
+        // Prompt the user for their name
+        const name = prompt(`Enter your name to reserve "${gift.name}":`);
+        if (!name || name.trim() === "") {
+          return; // Cancelled or empty string entered
+        }
+
+        try {
+          // Call your Supabase stored procedure / PLpgSQL RPC function
+          const { data, error: rpcError } = await supabase.rpc(
+            "claim_gift",
+            {
+              p_gift_id: gift.id,
+              p_name: name.trim()
+            }
+          );
+
+          if (rpcError) {
+            console.error("RPC Error:", rpcError);
+            alert("Something went wrong while executing reservation transaction.");
+            return;
+          }
+
+          // Database function returns false if current_claims >= max_claims
+          if (data === false) {
+            alert("Sorry! Someone else just snatched the final reservation slot!");
+            loadGifts(); // Refresh data to display the updated state
+            return;
+          }
+
+          // Success confirmation
+          alert(`Success! "${gift.name}" has been reserved for you.`);
+          loadGifts(); // Refresh data to show reduced slot allocation count
+
+        } catch (err) {
+          console.error("Execution exception:", err);
+          alert("An unexpected error occurred.");
+        }
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  // Load the list immediately when the website DOM loads
+  window.addEventListener("DOMContentLoaded", loadGifts);
+</script>
 
 </body>
 </html>
