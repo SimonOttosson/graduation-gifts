@@ -105,18 +105,19 @@
 
 <script>
   // 1. Initialize Supabase Client
-  // Replace these credentials with your actual project details from settings
   const SUPABASE_URL = 'https://szbcezcafzbdmdeqkobx.supabase.co'; 
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6YmNlemNhZnpiZG1kZXFrb2J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NDQ0MzksImV4cCI6MjA5NzAyMDQzOX0.vtg5fAL7ZcvkbtPGukNOEW1ZF3e3dheO1ygT2-88y6o';
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  // Renamed to 'supabaseClient' to avoid conflicting with the imported library
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // 2. Fetch gifts from Supabase and render them onto the grid
   async function loadGifts() {
     const grid = document.getElementById("gift-grid");
     grid.innerHTML = "Loading gifts...";
 
-    // Fetch gifts from your Supabase 'gifts' table
-    const { data: gifts, error } = await supabase
+    // Fetch gifts using supabaseClient
+    const { data: gifts, error } = await supabaseClient
       .from('gifts')
       .select('*')
       .order('id', { ascending: true });
@@ -127,10 +128,8 @@
       return;
     }
 
-    // Clear loading text
     grid.innerHTML = "";
 
-    // Generate HTML and assign event listeners dynamically
     gifts.forEach(gift => {
       const remaining = gift.max_claims - gift.current_claims;
       const isFull = remaining <= 0;
@@ -148,23 +147,21 @@
         ${isFull ? '' : '<div class="hint">Click to reserve →</div>'}
       `;
 
-      // 3. Add Click Handler to the card (with Supabase Transaction Semaphore Logic)
+      // 3. Add Click Handler to the card
       card.addEventListener("click", async () => {
-        // Stop execution if the item is already completely reserved
         if (isFull) {
           alert("This gift has already been fully claimed!");
           return;
         }
 
-        // Prompt the user for their name
         const name = prompt(`Enter your name to reserve "${gift.name}":`);
         if (!name || name.trim() === "") {
-          return; // Cancelled or empty string entered
+          return; 
         }
 
         try {
-          // Call your Supabase stored procedure / PLpgSQL RPC function
-          const { data, error: rpcError } = await supabase.rpc(
+          // Call your RPC function using supabaseClient
+          const { data, error: rpcError } = await supabaseClient.rpc(
             "claim_gift",
             {
               p_gift_id: gift.id,
@@ -178,16 +175,14 @@
             return;
           }
 
-          // Database function returns false if current_claims >= max_claims
           if (data === false) {
             alert("Sorry! Someone else just snatched the final reservation slot!");
-            loadGifts(); // Refresh data to display the updated state
+            loadGifts(); 
             return;
           }
 
-          // Success confirmation
           alert(`Success! "${gift.name}" has been reserved for you.`);
-          loadGifts(); // Refresh data to show reduced slot allocation count
+          loadGifts(); 
 
         } catch (err) {
           console.error("Execution exception:", err);
@@ -199,9 +194,7 @@
     });
   }
 
-  // Load the list immediately when the website DOM loads
   window.addEventListener("DOMContentLoaded", loadGifts);
 </script>
-
 </body>
 </html>
