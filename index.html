@@ -26,6 +26,16 @@
       padding: 15px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      cursor: pointer;
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
     }
 
     .card img {
@@ -33,17 +43,18 @@
       height: 180px;
       object-fit: cover;
       border-radius: 10px;
-      background: #ddd;
     }
 
     .title {
       font-weight: bold;
       margin-top: 10px;
+      font-size: 18px;
     }
 
     .desc {
       font-size: 14px;
       color: #555;
+      margin-top: 8px;
     }
 
     .status {
@@ -51,61 +62,53 @@
       font-size: 13px;
       color: green;
     }
-  </style>
 
+    .hint {
+      margin-top: 12px;
+      text-align: center;
+      color: #777;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .card:hover .hint {
+      opacity: 1;
+    }
+  </style>
 </head>
 
 <body>
 
 <h1>🎓 Graduation Gift Registry</h1>
 
-<div id="grid" class="grid"></div>
+<div class="grid">
 
-<script type="module">
-  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+  <div class="card">
+    <img src="https://placehold.co/300x200" />
+    <div class="title">Hexclad Cookware</div>
+    <div class="desc">Contribution to cookware set</div>
+    <div class="status">1 slot available</div>
+    <div class="hint">Click to reserve →</div>
+  </div>
 
-  // 🔴 PUT YOUR VALUES HERE:
-  const SUPABASE_URL = "https://szbcezcafzbdmdeqkobx.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6YmNlemNhZnpiZG1kZXFrb2J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NDQ0MzksImV4cCI6MjA5NzAyMDQzOX0.vtg5fAL7ZcvkbtPGukNOEW1ZF3e3dheO1ygT2-88y6o";
+  <div class="card">
+    <img src="https://placehold.co/300x200" />
+    <div class="title">Black Dress Shoes</div>
+    <div class="desc">Contribution to graduation outfit</div>
+    <div class="status">1 slot available</div>
+    <div class="hint">Click to reserve →</div>
+  </div>
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  <div class="card">
+    <img src="https://placehold.co/300x200" />
+    <div class="title">IKEA Gift Card</div>
+    <div class="desc">Contribution to IKEA gift card</div>
+    <div class="status">5 slots available</div>
+    <div class="hint">Click to reserve →</div>
+  </div>
 
-  async function loadGifts() {
-    const { data, error } = await supabase
-      .from("gifts")
-      .select("*");
-
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    const grid = document.getElementById("grid");
-    grid.innerHTML = "";
-
-    data.forEach(gift => {
-      const remaining = gift.max_claims - gift.current_claims;
-
-      const card = document.createElement("div");
-      card.className = "card";
-
-      card.innerHTML = `
-        <img src="${gift.image_url || "https://via.placeholder.com/300x200"}" />
-        <div class="title">${gift.name}</div>
-        <div class="desc">${gift.description}</div>
-        <div class="status">${remaining} slot(s) left</div>
-      `;
-	
-	card.addEventListener("click", () => {
-  		alert("Button works!");
-	});
-	
-      grid.appendChild(card);
-    });
-  }
-
-  loadGifts();
-</script>
+</div>
 
 </body>
 </html>
