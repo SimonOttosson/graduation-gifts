@@ -94,8 +94,14 @@
         <div class="title">${gift.name}</div>
         <div class="desc">${gift.description}</div>
         <div class="status">${remaining} slot(s) left</div>
+	
+	<button>Claim Gift</button>
       `;
-
+	
+	card.querySelector("button").addEventListener("click", () => {
+  		alert("Button works!");
+	});
+	
       grid.appendChild(card);
     });
   }
