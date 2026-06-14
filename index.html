@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>Graduation Gift Registry</title>
+  <title>Önskelista – Studentpresenter</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -29,9 +29,8 @@
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       cursor: pointer;
-      transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
     }
 
     .card:hover {
@@ -39,11 +38,12 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.15);
     }
 
-    /* Styles for when a card is fully claimed */
     .card.disabled {
       opacity: 0.6;
       cursor: not-allowed;
+      pointer-events: none;
     }
+
     .card.disabled:hover {
       transform: none;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -79,6 +79,28 @@
       font-weight: bold;
     }
 
+    .claim-btn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 10px;
+      background: #0077ff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .claim-btn:hover {
+      background: #005fcc;
+    }
+
+    .claim-btn:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
     .hint {
       margin-top: 12px;
       text-align: center;
@@ -91,6 +113,7 @@
     .card:hover .hint {
       opacity: 1;
     }
+
     .card.disabled:hover .hint {
       opacity: 0;
     }
@@ -99,32 +122,28 @@
 
 <body>
 
-<h1>🎓 Graduation Gift Registry</h1>
+<h1>🎓 Önskelista – Studentpresenter</h1>
 
 <div id="gift-grid" class="grid"></div>
 
 <script>
-  // 1. Initialize Supabase Client
   const SUPABASE_URL = 'https://szbcezcafzbdmdeqkobx.supabase.co'; 
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6YmNlemNhZnpiZG1kZXFrb2J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NDQ0MzksImV4cCI6MjA5NzAyMDQzOX0.vtg5fAL7ZcvkbtPGukNOEW1ZF3e3dheO1ygT2-88y6o';
-  
-  // Renamed to 'supabaseClient' to avoid conflicting with the imported library
+
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // 2. Fetch gifts from Supabase and render them onto the grid
   async function loadGifts() {
     const grid = document.getElementById("gift-grid");
-    grid.innerHTML = "Loading gifts...";
+    grid.innerHTML = "Laddar presenter...";
 
-    // Fetch gifts using supabaseClient
     const { data: gifts, error } = await supabaseClient
       .from('gifts')
       .select('*')
       .order('id', { ascending: true });
 
     if (error) {
-      console.error("Error loading gifts:", error);
-      grid.innerHTML = "<p>Could not fetch items. Make sure your RLS policies are set up or check console logs.</p>";
+      console.error("Fel vid hämtning:", error);
+      grid.innerHTML = "<p>Kunde inte hämta presenter. Kontrollera RLS‑regler.</p>";
       return;
     }
 
@@ -137,57 +156,52 @@
       const card = document.createElement("div");
       card.className = `card ${isFull ? 'disabled' : ''}`;
 
+      if (!isFull) {
+        card.addEventListener("click", () => {
+          window.open(gift.link, "_blank");
+        });
+      }
+
       card.innerHTML = `
         <img src="${gift.image_url || 'https://placehold.co/300x200'}" alt="${gift.name}" />
         <div class="title">${gift.name}</div>
         <div class="desc">${gift.description}</div>
         <div class="status ${isFull ? 'full' : ''}">
-          ${isFull ? 'Fully Reserved' : `${remaining} slot(s) available`}
+          ${isFull ? 'Fullt reserverad' : `${remaining} plats(er) kvar`}
         </div>
-        ${isFull ? '' : '<div class="hint">Click to reserve →</div>'}
+        ${isFull ? '' : '<div class="hint">Klicka för att öppna länken →</div>'}
+        <button class="claim-btn" ${isFull ? "disabled" : ""}>Reservera</button>
       `;
 
-      // 3. Add Click Handler to the card
-      card.addEventListener("click", async () => {
-        if (isFull) {
-          alert("This gift has already been fully claimed!");
+      const claimBtn = card.querySelector(".claim-btn");
+      claimBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+
+        const name = prompt(`Skriv ditt namn för att reservera "${gift.name}":`);
+        if (!name || name.trim() === "") return;
+
+        const { data, error: rpcError } = await supabaseClient.rpc(
+          "claim_gift",
+          {
+            p_gift_id: gift.id,
+            p_name: name.trim()
+          }
+        );
+
+        if (rpcError) {
+          console.error("RPC‑fel:", rpcError);
+          alert("Något gick fel vid reservationen.");
           return;
         }
 
-        const name = prompt(`Enter your name to reserve "${gift.name}":`);
-        if (!name || name.trim() === "") {
-          return; 
+        if (data === false) {
+          alert("Tyvärr! Någon hann före och tog sista platsen.");
+          loadGifts();
+          return;
         }
 
-        try {
-          // Call your RPC function using supabaseClient
-          const { data, error: rpcError } = await supabaseClient.rpc(
-            "claim_gift",
-            {
-              p_gift_id: gift.id,
-              p_name: name.trim()
-            }
-          );
-
-          if (rpcError) {
-            console.error("RPC Error:", rpcError);
-            alert("Something went wrong while executing reservation transaction.");
-            return;
-          }
-
-          if (data === false) {
-            alert("Sorry! Someone else just snatched the final reservation slot!");
-            loadGifts(); 
-            return;
-          }
-
-          alert(`Success! "${gift.name}" has been reserved for you.`);
-          loadGifts(); 
-
-        } catch (err) {
-          console.error("Execution exception:", err);
-          alert("An unexpected error occurred.");
-        }
+        alert(`Klart! "${gift.name}" är nu reserverad åt dig.`);
+        loadGifts();
       });
 
       grid.appendChild(card);
@@ -195,7 +209,6 @@
   }
 
   window.addEventListener("DOMContentLoaded", loadGifts);
-setInterval(loadGifts, 3000);
 </script>
 </body>
 </html>
