@@ -231,10 +231,13 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
         <div class="title">${gift.name}</div>
         <div class="desc">${gift.description}</div>
 
-        <div class="progress-container">
-          <div class="progress-bar" style="width: ${percent}%"></div>
-        </div>
-        <div class="progress-text">${total} kr av ${goal} kr</div>
+        ${isContribution ? `
+  	<div class="progress-container">
+    		<div class="progress-bar" style="width: ${percent}%"></div>
+  		</div>
+  	<div class="progress-text">${total} kr av ${goal} kr</div>
+	` : ""}
+
 
         <div class="status ${isFull ? 'full' : ''}">
           ${isContribution
