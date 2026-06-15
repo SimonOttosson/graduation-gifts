@@ -17,20 +17,20 @@
     }
 
     .intro {
-      max-width: 1000px;
-      margin: 0 auto;
-      margin-top: 10px;
-      text-align: center;
+      width: 100%;
+      margin: 20px 0;
+      text-align: left;
       font-size: 16px;
       color: #444;
       line-height: 1.5;
+      white-space: pre-line;
     }
 
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 20px;
-      margin-top: 30px;
+      margin-top: 40px;
     }
 
     .card {
@@ -132,7 +132,6 @@
       opacity: 0;
     }
 
-    /* Dölj hint när man hovrar över knappen */
     .claim-btn:hover ~ .hint {
       opacity: 0;
     }
@@ -141,19 +140,22 @@
 
 <body>
 
-<h1>🎓 Önskelista – Simons Examen</h1>
+<h1>🎓 Önskelista – Studentpresenter</h1>
 
 <p class="intro">
-  Välkommen till denna sidan som jag har vibecodeat tillsammans med Copilot, ChatGPT och Gemini.<br><br>
-  Här hittar ni ett urval av saker som jag önskar mig inför min examen.<br>
-  Klicka på ett kort för att öppna länken till produkten, eller tryck på <strong>Reservera</strong> om du vill reservera att köpa just den presenten.<br>
-  (Jag rekommenderar att reservera först och köpa sen. Om man ångrar sig, skriv till mig <3)<br><br>
-  Det finns absolut inget krav på att man måste köpa något härifrån — det är bara för skoj skull, och för att visa vad AI kan göra idag.<br><br>
-  Ni kan använda smeknamn eller hemliga namn om ni inte vill att jag ska se vad just ni köpt.<br>
-  Jag kommer dock inte att tjuvkolla efter att jag lanserat sidan.<br><br>
-  Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM Simon!
-</p>
+Välkommen till denna sidan som jag har vibecodeat tillsammans med Copilot, ChatGPT och Gemini.
 
+Här hittar ni ett urval av saker som jag önskar mig inför min examen.
+Klicka på ett kort för att öppna länken till produkten, eller tryck på Reservera om du vill reservera att köpa just den presenten.
+(Jag rekommenderar att reservera först och köpa sen. Om man ångrar sig, skriv till mig <3)
+
+Det finns absolut inget krav på att man måste köpa något härifrån — det är bara för skoj skull, och för att visa vad AI kan göra idag.
+
+Ni kan använda smeknamn eller hemliga namn om ni inte vill att jag ska se vad just ni köpt.
+Jag kommer dock inte att tjuvkolla efter att jag lanserat sidan.
+
+Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM Simon!
+</p>
 
 <div id="gift-grid" class="grid"></div>
 
@@ -183,6 +185,7 @@
     gifts.forEach(gift => {
       const remaining = gift.max_claims - gift.current_claims;
       const isFull = remaining <= 0;
+      const isContribution = gift.is_contribution === true;
 
       const card = document.createElement("div");
       card.className = `card ${isFull ? 'disabled' : ''}`;
@@ -198,15 +201,46 @@
         <div class="title">${gift.name}</div>
         <div class="desc">${gift.description}</div>
         <div class="status ${isFull ? 'full' : ''}">
-          ${isFull ? 'Fullt reserverad' : `${remaining} plats(er) kvar`}
+          ${isContribution ? "Bidrag uppskattas ❤️" : (isFull ? 'Fullt reserverad' : `${remaining} plats(er) kvar`)}
         </div>
-        <button class="claim-btn" ${isFull ? "disabled" : ""}>Reservera</button>
+
+        <button class="claim-btn" ${isFull ? "disabled" : ""}>
+          ${isContribution ? "Bidra" : "Reservera"}
+        </button>
+
         ${isFull ? '' : '<div class="hint">Klicka för att öppna länken →</div>'}
       `;
 
       const claimBtn = card.querySelector(".claim-btn");
+
       claimBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
+
+        if (isContribution) {
+          const amount = prompt(`Hur mycket vill du bidra med till "${gift.name}"? (SEK)`);
+          if (!amount || isNaN(amount)) return;
+
+          const name = prompt("Skriv ditt namn (eller smeknamn):");
+          if (!name || name.trim() === "") return;
+
+          const { data, error } = await supabaseClient
+            .from("claims")
+            .insert({
+              gift_id: gift.id,
+              claimant_name: name.trim(),
+              amount: Number(amount),
+              is_contribution: true
+            });
+
+          if (error) {
+            console.error(error);
+            alert("Något gick fel vid bidraget.");
+            return;
+          }
+
+          alert(`Tack! Du har bidragit med ${amount} kr till "${gift.name}".`);
+          return;
+        }
 
         const name = prompt(`Skriv ditt namn för att reservera "${gift.name}":`);
         if (!name || name.trim() === "") return;
@@ -220,7 +254,7 @@
         );
 
         if (rpcError) {
-          console.error("RPC‑fel:", rpcError);
+          console.error("RPC-fel:", rpcError);
           alert("Något gick fel vid reservationen.");
           return;
         }
