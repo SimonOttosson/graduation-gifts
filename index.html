@@ -17,12 +17,12 @@
     }
 
     .intro {
-      width: 100%;
-      margin: 20px 0 50px 0;
+      max-width: 800px;
+      margin: 20px auto 50px auto;
       text-align: left;
       font-size: 16px;
       color: #444;
-      line-height: 1.5;
+      line-height: 1.6;
       white-space: pre-line;
     }
 
@@ -236,12 +236,15 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
         <div class="desc">${gift.description}</div>
 
         ${isContribution ? `
-  	<div class="progress-container">
-    		<div class="progress-bar" style="width: ${percent}%"></div>
-  		</div>
-  	<div class="progress-text">${total} kr av ${goal} kr</div>
-	` : ""}
-
+          <div class="progress-container">
+            <div class="progress-bar" style="width: ${percent}%"></div>
+          </div>
+          <div class="progress-text">${total} kr av ${goal} kr</div>
+        ` : `
+          <div class="progress-text" style="font-weight: bold; margin-top: 10px; color: #333;">
+            ${(gift.goal_amount || gift.price) ? `${gift.goal_amount || gift.price} kr` : 'Pris saknas'}
+          </div>
+        `}
 
         <div class="status ${isFull ? 'full' : ''}">
           ${isContribution
