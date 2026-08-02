@@ -169,9 +169,9 @@ För "reservera" räcker det med att välja saken och sedan köpa den.
 Klicka på kortet / bilden för att komma till en hemsida med produkten.
 OBS! När en produkt är vald kan man inte längre gå till hemsidan!
   
-Klicka på Reservera eller Bidra för att välja den och skriv sedan in ert namn (använd smeknamn så jag inte ser vem som köpt vad)
+Klicka på Reservera eller Bidra för att välja den och  sedan in ert namn (använd smeknamn så jag inte ser vem som köpt vad)
 (Jag kommer dock inte att tjuvkolla efter att jag lanserat sidan)
-(Jag rekommenderar att reservera först och köpa sen. Om man ångrar sig, skriv till mig <3)
+(Jag rekommenderar att reservera först och köpa sen. Om man ångrar sig,  till mig <3)
 
 Det finns absolut inget krav på att man måste köpa något härifrån — det är bara för skoj skull, och för att visa vad AI kan göra idag.
 
@@ -320,7 +320,7 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
           return;
         }
 
-        const name = prompt(`Skriv ditt namn för att reservera "${gift.name}":`);
+        const name = prompt(`Skriv ditt namn (eller smeknamn) för att välja "${gift.name}":`);
         if (!name || name.trim() === "") return;
 
         const { data, error: rpcError } = await supabaseClient.rpc(
