@@ -242,7 +242,10 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
           <div class="progress-text">${total} kr av ${goal} kr</div>
         ` : `
           <div class="progress-text" style="font-weight: bold; margin-top: 10px; color: #333;">
-            ${(gift.goal_amount || gift.price) ? `${gift.goal_amount || gift.price} kr` : 'Pris saknas'}
+            ${gift.goal_amount
+              ? `${gift.goal_amount} kr`
+              : 'Pris saknas'}
+
           </div>
         `}
 
