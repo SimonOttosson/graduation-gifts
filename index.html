@@ -197,6 +197,27 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
       .from("claims")
       .select("gift_id, amount, is_contribution");
 
+    // Sortera så att:
+    // 1. Bidrag (is_contribution = true) kommer först
+    // 2. Fulla / uppnådda mål kommer sist
+    // 3. Inom varje grupp sorteras efter id
+    gifts.sort((a, b) => {
+      // Bidrag först
+      if (a.is_contribution && !b.is_contribution) return -1;
+      if (!a.is_contribution && b.is_contribution) return 1;
+    
+      // Fulla sist
+      const aFull = a.max_claims - a.current_claims <= 0;
+      const bFull = b.max_claims - b.current_claims <= 0;
+    
+      if (!aFull && bFull) return -1;
+      if (aFull && !bFull) return 1;
+    
+      // Annars sortera på id
+      return a.id - b.id;
+    });
+
+
     const totals = {};
     claims.forEach(c => {
       if (c.is_contribution && c.amount) {
