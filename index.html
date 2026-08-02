@@ -207,8 +207,17 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
       if (!a.is_contribution && b.is_contribution) return 1;
     
       // Fulla sist
-      const aFull = a.max_claims - a.current_claims <= 0;
-      const bFull = b.max_claims - b.current_claims <= 0;
+      const aTotal = totals[a.id] || 0;
+      const bTotal = totals[b.id] || 0;
+      
+      const aFull = a.is_contribution
+        ? aTotal >= (a.goal_amount || 0)
+        : (a.max_claims - a.current_claims <= 0);
+      
+      const bFull = b.is_contribution
+        ? bTotal >= (b.goal_amount || 0)
+        : (b.max_claims - b.current_claims <= 0);
+
     
       if (!aFull && bFull) return -1;
       if (aFull && !bFull) return 1;
