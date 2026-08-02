@@ -190,25 +190,38 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
     const grid = document.getElementById("gift-grid");
     grid.innerHTML = "Laddar presenter...";
 
-    const { data: gifts, error } = await supabaseClient
+    const { data: gifts, error: giftsError } = await supabaseClient
       .from('gifts')
       .select('*')
       .order('id', { ascending: true });
 
-    const { data: claims } = await supabaseClient
+    const { data: claims, error: claimsError } = await supabaseClient
       .from("claims")
       .select("gift_id, amount, is_contribution");
 
-    // Sortera så att:
-    // 1. Bidrag (is_contribution = true) kommer först
-    // 2. Fulla / uppnådda mål kommer sist
-    // 3. Inom varje grupp sorteras efter id
+    if (giftsError || !gifts) {
+      console.error("Fel vid hämtning:", giftsError);
+      grid.innerHTML = "<p>Kunde inte hämta presenter. Kontrollera RLS‑regler.</p>";
+      return;
+    }
+
+    // 1. Calculate totals FIRST before using them in sorting
+    const totals = {};
+    if (claims) {
+      claims.forEach(c => {
+        if (c.is_contribution && c.amount) {
+          totals[c.gift_id] = (totals[c.gift_id] || 0) + c.amount;
+        }
+      });
+    }
+
+    // 2. Now sort gifts using the pre-calculated totals
     gifts.sort((a, b) => {
-      // Bidrag först
+      // Contributions first
       if (a.is_contribution && !b.is_contribution) return -1;
       if (!a.is_contribution && b.is_contribution) return 1;
-    
-      // Fulla sist
+      
+      // Full/achieved goals last
       const aTotal = totals[a.id] || 0;
       const bTotal = totals[b.id] || 0;
       
@@ -220,27 +233,12 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
         ? bTotal >= (b.goal_amount || 0)
         : (b.max_claims - b.current_claims <= 0);
 
-    
       if (!aFull && bFull) return -1;
       if (aFull && !bFull) return 1;
-    
-      // Annars sortera på id
+      
+      // Fallback: sort by ID
       return a.id - b.id;
     });
-
-
-    const totals = {};
-    claims.forEach(c => {
-      if (c.is_contribution && c.amount) {
-        totals[c.gift_id] = (totals[c.gift_id] || 0) + c.amount;
-      }
-    });
-
-    if (error) {
-      console.error("Fel vid hämtning:", error);
-      grid.innerHTML = "<p>Kunde inte hämta presenter. Kontrollera RLS‑regler.</p>";
-      return;
-    }
 
     grid.innerHTML = "";
 
@@ -256,7 +254,7 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
       const card = document.createElement("div");
       card.className = `card ${isFull ? 'disabled' : ''}`;
 
-      if (!isFull) {
+      if (!isFull && gift.link) {
         card.addEventListener("click", () => {
           window.open(gift.link, "_blank");
         });
@@ -265,7 +263,7 @@ Hoppas ni tycker det är lika kul som jag gör! Vi ses den 15e Augusti! <3 KRAM 
       card.innerHTML = `
         <img src="${gift.image_url || 'https://placehold.co/300x200'}" alt="${gift.name}" />
         <div class="title">${gift.name}</div>
-        <div class="desc">${gift.description}</div>
+        <div class="desc">${gift.description || ''}</div>
 
         ${isContribution ? `
           <div class="progress-container">
